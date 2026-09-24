@@ -17,12 +17,39 @@ def load_joblib(filename):
 
 logistic_model = load_joblib('logistic_model.pkl') or load_joblib('loan_model.pkl')
 rf_model = load_joblib('rf_model.pkl') or load_joblib('loan_model.pkl')
+dt_model = load_joblib('dt_model.pkl')
+adaboost_model = load_joblib('adaboost_model.pkl')
+bagging_model = load_joblib('bagging_model.pkl')
 scaler = load_joblib('scaler.pkl')
-le = load_joblib('label_encoder.pkl')
 
-print('Logistic:', type(logistic_model).__name__ if logistic_model is not None else 'MISSING')
-print('Random Forest:', type(rf_model).__name__ if rf_model is not None else 'MISSING')
+for m in [logistic_model, rf_model, dt_model, adaboost_model, bagging_model]:
+    if m is not None and hasattr(m, 'n_jobs'):
+        m.n_jobs = 1
+
+print('Logistic:', 'loaded' if logistic_model is not None else 'MISSING')
+print('Random Forest:', 'loaded' if rf_model is not None else 'MISSING')
+print('Decision Tree:', 'loaded' if dt_model is not None else 'MISSING')
+print('AdaBoost:', 'loaded' if adaboost_model is not None else 'MISSING')
+print('Bagging:', 'loaded' if bagging_model is not None else 'MISSING')
 print('Scaler:', 'loaded' if scaler is not None else 'MISSING')
+
+CAT_MAPPINGS = {
+    'education': {"High School": 0, "Bachelor's": 1, "Master's": 2, "PhD": 3},
+    'employmenttype': {"Full-time": 0, "Part-time": 1, "Self-employed": 2, "Unemployed": 3},
+    'maritalstatus': {"Single": 0, "Married": 1, "Divorced": 2},
+    'hasmortgage': {"No": 0, "Yes": 1},
+    'hasdependents': {"No": 0, "Yes": 1},
+    'loanpurpose': {"Auto": 0, "Business": 1, "Education": 2, "Home": 3, "Other": 4},
+    'hascosigner': {"No": 0, "Yes": 1},
+}
+
+MODEL_MAP = {
+    'logistic': (logistic_model, 'logistic_regression', 'Logistic Regression'),
+    'random_forest': (rf_model, 'random_forest', 'Random Forest'),
+    'decision_tree': (dt_model, 'decision_tree', 'Decision Tree'),
+    'adaboost': (adaboost_model, 'adaboost', 'AdaBoost'),
+    'bagging': (bagging_model, 'bagging', 'Bagging Classifier'),
+}
 
 @app.route('/')
 def home():
@@ -44,16 +71,26 @@ def make_prediction(model, df_input):
 def predict():
     try:
         if scaler is None:
-            return jsonify({'success': False, 'error': 'scaler.pkl is missing in the backend folder'}), 400
+            return jsonify({'success': False, 'error': 'scaler.pkl is missing in backend'}), 400
 
         data = request.get_json() or {}
-        model_choice = str(data.pop('model', 'both')).strip().lower().replace('-', '_')
-        if model_choice in ('logisticregression', 'lr'):
+        raw_model_choice = str(data.pop('model', 'all')).strip().lower().replace('-', '_').replace(' ', '_')
+        
+        # Normalize model selection
+        if raw_model_choice in ('logisticregression', 'lr', 'logistic'):
             model_choice = 'logistic'
-        if model_choice in ('rf', 'randomforest'):
+        elif raw_model_choice in ('rf', 'randomforest', 'random_forest'):
             model_choice = 'random_forest'
-        if model_choice not in ('logistic', 'random_forest', 'both'):
-            model_choice = 'both'
+        elif raw_model_choice in ('dt', 'decisiontree', 'decision_tree'):
+            model_choice = 'decision_tree'
+        elif raw_model_choice in ('adaboost', 'ada'):
+            model_choice = 'adaboost'
+        elif raw_model_choice in ('bagging', 'baggingclassifier', 'bagging_classifier'):
+            model_choice = 'bagging'
+        elif raw_model_choice in ('both', 'all'):
+            model_choice = 'all'
+        else:
+            model_choice = 'all'
 
         df_input = pd.DataFrame([data])
         df_input.columns = df_input.columns.str.strip().str.lower().str.replace(' ', '_')
@@ -68,44 +105,47 @@ def predict():
             if col not in df_input.columns:
                 df_input[col] = 0
 
-        df_input = df_input[expected_columns].apply(pd.to_numeric, errors='coerce').fillna(0)
+        # Encode categorical columns
+        for col in categorical_cols:
+            val = df_input[col].iloc[0]
+            if isinstance(val, bool):
+                df_input[col] = 1 if val else 0
+            elif isinstance(val, str):
+                if val in ('Yes', 'No'):
+                    df_input[col] = 1 if val == 'Yes' else 0
+                else:
+                    mapping = CAT_MAPPINGS.get(col, {})
+                    df_input[col] = mapping.get(val, 0)
 
-        if le is not None:
-            for col in categorical_cols:
-                if df_input[col].dtype == 'O' or isinstance(df_input[col].iloc[0], str):
-                    try:
-                        df_input[col] = le.transform(df_input[col])
-                    except ValueError:
-                        df_input[col] = 0
-
+        df_input[numeric_cols] = df_input[numeric_cols].apply(pd.to_numeric, errors='coerce').fillna(0)
         df_input[numeric_cols] = scaler.transform(df_input[numeric_cols])
+
+        df_input = df_input[expected_columns]
 
         response = {
             'success': True,
             'selected_model': model_choice
         }
 
-        if model_choice in ('logistic', 'both'):
-            if logistic_model is None:
-                return jsonify({'success': False, 'error': 'logistic_model.pkl not found'}), 400
-            logistic_result = make_prediction(logistic_model, df_input)
-            response['logistic_regression'] = {
-                'name': 'Logistic Regression',
-                **logistic_result
+        target_keys = MODEL_MAP.keys() if model_choice == 'all' else [model_choice]
+
+        for key in target_keys:
+            model_obj, res_key, display_name = MODEL_MAP[key]
+            if model_obj is None:
+                return jsonify({'success': False, 'error': f'{display_name} model (.pkl) not found'}), 400
+            res = make_prediction(model_obj, df_input)
+            response[res_key] = {
+                'name': display_name,
+                **res
             }
 
-        if model_choice in ('random_forest', 'both'):
-            if rf_model is None:
-                return jsonify({'success': False, 'error': 'rf_model.pkl not found'}), 400
-            rf_result = make_prediction(rf_model, df_input)
-            response['random_forest'] = {
-                'name': 'Random Forest',
-                **rf_result
-            }
-
-        primary = response.get('random_forest') or response.get('logistic_regression')
+        # Set top-level primary result for convenience
+        first_key = list(target_keys)[0]
+        _, primary_res_key, _ = MODEL_MAP[first_key]
+        primary = response.get(primary_res_key)
         response['prediction'] = primary['prediction']
         response['risk_status'] = primary['risk_status']
+
         return jsonify(response)
 
     except Exception as e:
@@ -115,4 +155,5 @@ def predict():
         }), 400
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
