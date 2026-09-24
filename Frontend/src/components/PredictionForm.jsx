@@ -7,6 +7,7 @@ const EDUCATION_OPTIONS = [
   { label: "High School", value: "High School" },
   { label: "Bachelor's", value: "Bachelor's" },
   { label: "Master's", value: "Master's" },
+  { label: "PhD", value: "PhD" },
 ];
 
 const EMPLOYMENT_OPTIONS = [

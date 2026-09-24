@@ -4,7 +4,7 @@ const API_BASE = '/api'; // proxied to http://localhost:5000 by Vite
  * Maps the camelCase form data from PredictionForm to the
  * snake_case / exact field names the Flask backend expects.
  */
-function mapToBackendPayload(formData, modelChoice = 'both') {
+function mapToBackendPayload(formData, modelChoice = 'all') {
   return {
     model: modelChoice,
     // Numeric fields
@@ -35,10 +35,13 @@ function mapToBackendPayload(formData, modelChoice = 'both') {
 function normaliseResponse(data) {
   const isHighRisk = data.prediction === 1;
 
-  // Build a confidence score. Use RF probability if available, else logistic.
-  const rfProb = data.random_forest?.probability;
-  const lrProb = data.logistic_regression?.probability;
-  const rawProb = rfProb ?? lrProb ?? null;
+  // Build a confidence score — prefer RF, then LR, then DT, then AdaBoost, then Bagging
+  const rfProb   = data.random_forest?.probability;
+  const lrProb   = data.logistic_regression?.probability;
+  const dtProb   = data.decision_tree?.probability;
+  const adaProb  = data.adaboost?.probability;
+  const bagProb  = data.bagging?.probability;
+  const rawProb  = rfProb ?? lrProb ?? dtProb ?? adaProb ?? bagProb ?? null;
 
   // probability is P(default). For high risk, confidence = that value;
   // for low risk, confidence = 1 - probability.
@@ -54,21 +57,23 @@ function normaliseResponse(data) {
     ? 'High Risk of Default Detected'
     : 'Low Risk — Likely to Repay';
 
-  // Key risk factors derived from returned probabilities
+  // Key risk factors — one line per model returned by backend
   const factors = [];
-
-  if (data.random_forest) {
-    const rfPct = data.random_forest.probability != null
-      ? `${Math.round(data.random_forest.probability * 100)}%`
-      : 'N/A';
-    factors.push(`Random Forest default probability: ${rfPct}`);
-  }
-  if (data.logistic_regression) {
-    const lrPct = data.logistic_regression.probability != null
-      ? `${Math.round(data.logistic_regression.probability * 100)}%`
-      : 'N/A';
-    factors.push(`Logistic Regression default probability: ${lrPct}`);
-  }
+  const MODEL_LABELS = [
+    { key: 'random_forest',       label: 'Random Forest' },
+    { key: 'logistic_regression', label: 'Logistic Regression' },
+    { key: 'decision_tree',       label: 'Decision Tree' },
+    { key: 'adaboost',            label: 'AdaBoost' },
+    { key: 'bagging',             label: 'Bagging Classifier' },
+  ];
+  MODEL_LABELS.forEach(({ key, label }) => {
+    if (data[key]) {
+      const pct = data[key].probability != null
+        ? `${Math.round(data[key].probability * 100)}%`
+        : 'N/A';
+      factors.push(`${label} default probability: ${pct}`);
+    }
+  });
   if (factors.length === 0) {
     factors.push(isHighRisk
       ? 'Model predicts a high likelihood of default.'
@@ -81,10 +86,13 @@ function normaliseResponse(data) {
     confidence,
     message,
     factors,
-    // Expose raw model results for any future detailed view
+    // Expose all model results for detailed breakdown in ResultCard
     models: {
-      random_forest: data.random_forest ?? null,
+      random_forest:       data.random_forest       ?? null,
       logistic_regression: data.logistic_regression ?? null,
+      decision_tree:       data.decision_tree       ?? null,
+      adaboost:            data.adaboost            ?? null,
+      bagging:             data.bagging             ?? null,
     },
   };
 }
@@ -97,7 +105,7 @@ function normaliseResponse(data) {
  * @param {string} modelChoice - 'both' | 'logistic' | 'random_forest'
  * @returns {Promise<object>} - Normalised result for ResultCard
  */
-export async function predictLoanDefault(formData, modelChoice = 'both') {
+export async function predictLoanDefault(formData, modelChoice = 'all') {
   const payload = mapToBackendPayload(formData, modelChoice);
 
   const response = await fetch(`${API_BASE}/predict`, {

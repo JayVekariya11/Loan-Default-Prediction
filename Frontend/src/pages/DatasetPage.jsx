@@ -46,8 +46,8 @@ const AGE_DIST = [
 ];
 
 const EDUCATION_DIST = [
-  { name: "High School", value: 18500 }, { name: "Bachelor's", value: 22800 },
-  { name: "Master's", value: 14047 },
+  { name: "High School", value: 14200 }, { name: "Bachelor's", value: 19800 },
+  { name: "Master's", value: 14047 }, { name: 'PhD', value: 7300 },
 ];
 
 const EMPLOYMENT_DIST = [

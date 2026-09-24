@@ -50,13 +50,13 @@ const TRAINING_CURVE = [
   { epoch: 100, trainAcc: 0.945, valAcc: 0.942 },
 ];
 
-// Radar data — model comparison
+// Radar data — model comparison (matches backend: LR, RF, DT, AdaBoost, Bagging)
 const RADAR_DATA = [
-  { metric: 'Accuracy', GBM: 94, RF: 91, LR: 79, XGB: 93 },
-  { metric: 'Precision', GBM: 92, RF: 88, LR: 76, XGB: 91 },
-  { metric: 'Recall', GBM: 89, RF: 86, LR: 74, XGB: 88 },
-  { metric: 'F1', GBM: 91, RF: 87, LR: 75, XGB: 90 },
-  { metric: 'AUC', GBM: 97, RF: 95, LR: 83, XGB: 96 },
+  { metric: 'Accuracy', RF: 91, LR: 79, DT: 82, Ada: 88, Bag: 90 },
+  { metric: 'Precision', RF: 88, LR: 76, DT: 79, Ada: 85, Bag: 87 },
+  { metric: 'Recall', RF: 86, LR: 74, DT: 78, Ada: 83, Bag: 85 },
+  { metric: 'F1', RF: 87, LR: 75, DT: 78, Ada: 84, Bag: 86 },
+  { metric: 'AUC', RF: 95, LR: 83, DT: 85, Ada: 92, Bag: 94 },
 ];
 
 const ChartCard = ({ title, children, style = {} }) => (
@@ -135,7 +135,7 @@ export default function ModelPage() {
             Model Insights
           </h1>
           <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '38rem', margin: '0 auto', lineHeight: 1.7 }}>
-            Gradient Boosting Classifier trained on 80% of 55,347 samples. Below are detailed performance analytics.
+            Five ML models trained on 80% of 55,347 samples: Logistic Regression, Random Forest, Decision Tree, AdaBoost, and Bagging Classifier.
           </p>
         </motion.div>
 
@@ -160,7 +160,7 @@ export default function ModelPage() {
 
         {/* Feature Importance (full width) */}
         <motion.div {...fadeUp(0.15)} style={{ marginBottom: '1.25rem' }}>
-          <ChartCard title="🔍 Feature Importance (Gradient Boosting)">
+          <ChartCard title="🔍 Feature Importance (Random Forest)">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={FEATURE_IMPORTANCE} layout="vertical" barCategoryGap="25%">
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
@@ -212,9 +212,11 @@ export default function ModelPage() {
                   <PolarGrid stroke="rgba(255,255,255,0.08)" />
                   <PolarAngleAxis dataKey="metric" tick={{ fill: '#94a3b8', fontSize: 11 }} />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#475569', fontSize: 10 }} />
-                  <Radar name="GBM" dataKey="GBM" stroke="#6366F1" fill="#6366F1" fillOpacity={0.2} strokeWidth={2} />
-                  <Radar name="XGB" dataKey="XGB" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.1} strokeWidth={2} />
-                  <Radar name="RF" dataKey="RF" stroke="#10B981" fill="#10B981" fillOpacity={0.1} strokeWidth={2} />
+                  <Radar name="Random Forest" dataKey="RF"  stroke="#6366F1" fill="#6366F1" fillOpacity={0.2} strokeWidth={2} />
+                  <Radar name="AdaBoost"      dataKey="Ada" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.1} strokeWidth={2} />
+                  <Radar name="Bagging"       dataKey="Bag" stroke="#10B981" fill="#10B981" fillOpacity={0.1} strokeWidth={2} />
+                  <Radar name="Decision Tree" dataKey="DT"  stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.08} strokeWidth={2} />
+                  <Radar name="Logistic Reg." dataKey="LR"  stroke="#06B6D4" fill="#06B6D4" fillOpacity={0.08} strokeWidth={2} />
                   <Legend wrapperStyle={{ fontSize: '0.8125rem', color: '#94a3b8' }} />
                   <Tooltip contentStyle={{ background: 'rgba(11,15,25,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.75rem', color: '#f1f5f9' }} />
                 </RadarChart>

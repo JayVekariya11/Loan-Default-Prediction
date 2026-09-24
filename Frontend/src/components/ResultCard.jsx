@@ -56,9 +56,19 @@ export const ResultCard = ({ result, onReset }) => {
   const borderColor = isHighRisk ? 'rgba(244,63,94,0.25)' : 'rgba(16,185,129,0.25)';
   const glowColor = isHighRisk ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)';
 
-  const rf = result.models?.random_forest;
-  const lr = result.models?.logistic_regression;
-  const hasModels = rf || lr;
+  const rf  = result.models?.random_forest;
+  const lr  = result.models?.logistic_regression;
+  const dt  = result.models?.decision_tree;
+  const ada = result.models?.adaboost;
+  const bag = result.models?.bagging;
+  const allModels = [
+    { key: 'rf',  data: rf,  name: 'Random Forest' },
+    { key: 'lr',  data: lr,  name: 'Logistic Reg.' },
+    { key: 'dt',  data: dt,  name: 'Decision Tree' },
+    { key: 'ada', data: ada, name: 'AdaBoost' },
+    { key: 'bag', data: bag, name: 'Bagging' },
+  ].filter(m => m.data != null);
+  const hasModels = allModels.length > 0;
 
   return (
     <motion.div
@@ -178,27 +188,18 @@ export const ResultCard = ({ result, onReset }) => {
           <div style={{ fontSize: '0.7rem', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
             Model Breakdown
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            {rf && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {allModels.map(({ key, data: m, name }) => (
               <ModelBadge
-                name="Random Forest"
-                probability={rf.probability}
-                isHighRisk={rf.prediction === 1}
-                primaryColor={rf.prediction === 1 ? '#F43F5E' : '#10B981'}
-                bgColor={rf.prediction === 1 ? 'rgba(244,63,94,0.08)' : 'rgba(16,185,129,0.08)'}
-                borderColor={rf.prediction === 1 ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)'}
+                key={key}
+                name={name}
+                probability={m.probability}
+                isHighRisk={m.prediction === 1}
+                primaryColor={m.prediction === 1 ? '#F43F5E' : '#10B981'}
+                bgColor={m.prediction === 1 ? 'rgba(244,63,94,0.08)' : 'rgba(16,185,129,0.08)'}
+                borderColor={m.prediction === 1 ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)'}
               />
-            )}
-            {lr && (
-              <ModelBadge
-                name="Logistic Reg."
-                probability={lr.probability}
-                isHighRisk={lr.prediction === 1}
-                primaryColor={lr.prediction === 1 ? '#F43F5E' : '#10B981'}
-                bgColor={lr.prediction === 1 ? 'rgba(244,63,94,0.08)' : 'rgba(16,185,129,0.08)'}
-                borderColor={lr.prediction === 1 ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)'}
-              />
-            )}
+            ))}
           </div>
         </motion.div>
       )}

@@ -66,7 +66,7 @@ export default function HomePage() {
           }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366F1', display: 'inline-block' }} />
             <span style={{ fontSize: '0.8rem', color: '#a5b4fc', fontWeight: 600, letterSpacing: '0.07em' }}>
-              MACHINE LEARNING · SEM 5 PROJECT
+              AI-POWERED RISK ANALYSIS
             </span>
           </div>
         </motion.div>
