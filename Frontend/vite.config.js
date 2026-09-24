@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // Requests to /api/* are forwarded to Flask (http://localhost:5000/*)
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://loan-default-prediction-1-o7xy.onrender.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

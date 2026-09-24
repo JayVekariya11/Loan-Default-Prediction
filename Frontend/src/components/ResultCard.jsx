@@ -61,14 +61,6 @@ export const ResultCard = ({ result, onReset }) => {
   const dt  = result.models?.decision_tree;
   const ada = result.models?.adaboost;
   const bag = result.models?.bagging;
-  const allModels = [
-    { key: 'rf',  data: rf,  name: 'Random Forest' },
-    { key: 'lr',  data: lr,  name: 'Logistic Reg.' },
-    { key: 'dt',  data: dt,  name: 'Decision Tree' },
-    { key: 'ada', data: ada, name: 'AdaBoost' },
-    { key: 'bag', data: bag, name: 'Bagging' },
-  ].filter(m => m.data != null);
-  const hasModels = allModels.length > 0;
 
   return (
     <motion.div
@@ -178,31 +170,7 @@ export const ResultCard = ({ result, onReset }) => {
       </motion.div>
 
       {/* Per-model breakdown */}
-      {hasModels && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.55 }}
-          style={{ marginBottom: '2rem' }}
-        >
-          <div style={{ fontSize: '0.7rem', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
-            Model Breakdown
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {allModels.map(({ key, data: m, name }) => (
-              <ModelBadge
-                key={key}
-                name={name}
-                probability={m.probability}
-                isHighRisk={m.prediction === 1}
-                primaryColor={m.prediction === 1 ? '#F43F5E' : '#10B981'}
-                bgColor={m.prediction === 1 ? 'rgba(244,63,94,0.08)' : 'rgba(16,185,129,0.08)'}
-                borderColor={m.prediction === 1 ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)'}
-              />
-            ))}
-          </div>
-        </motion.div>
-      )}
+
 
       {/* Key Factors */}
       <motion.div

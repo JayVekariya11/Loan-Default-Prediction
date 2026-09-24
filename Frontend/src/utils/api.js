@@ -1,4 +1,4 @@
-const API_BASE = '/api'; // proxied to http://localhost:5000 by Vite
+const API_BASE = 'https://loan-default-prediction-1-o7xy.onrender.com'; // Deployed Flask backend
 
 /**
  * Maps the camelCase form data from PredictionForm to the
@@ -57,27 +57,18 @@ function normaliseResponse(data) {
     ? 'High Risk of Default Detected'
     : 'Low Risk — Likely to Repay';
 
-  // Key risk factors — one line per model returned by backend
+  // Key risk factors — clean final summary
   const factors = [];
-  const MODEL_LABELS = [
-    { key: 'random_forest',       label: 'Random Forest' },
-    { key: 'logistic_regression', label: 'Logistic Regression' },
-    { key: 'decision_tree',       label: 'Decision Tree' },
-    { key: 'adaboost',            label: 'AdaBoost' },
-    { key: 'bagging',             label: 'Bagging Classifier' },
-  ];
-  MODEL_LABELS.forEach(({ key, label }) => {
-    if (data[key]) {
-      const pct = data[key].probability != null
-        ? `${Math.round(data[key].probability * 100)}%`
-        : 'N/A';
-      factors.push(`${label} default probability: ${pct}`);
-    }
-  });
-  if (factors.length === 0) {
-    factors.push(isHighRisk
-      ? 'Model predicts a high likelihood of default.'
-      : 'Model predicts a low likelihood of default.');
+  if (data.risk_status) {
+    factors.push(data.risk_status);
+  }
+  factors.push(
+    isHighRisk
+      ? `Default probability: ${confidence}% — This applicant is likely to default on the loan.`
+      : `Repayment probability: ${confidence}% — This applicant is likely to repay the loan.`
+  );
+  if (rawProb !== null) {
+    factors.push(`Ensemble of 5 models agrees on this prediction with ${confidence}% confidence.`);
   }
 
   return {
